@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valentine Card</title>
+
+<style>
+body{
+  text-align:center;
+  font-family:Arial;
+  background:#f2f2f2;
+}
+
+h2{ color:#e91e63; }
+
+.scratch-box{
+  position:relative;
+  width:320px;
+  height:200px;
+  margin:20px auto;
+  border-radius:16px;
+  border:4px solid #f3b6d2;
+  overflow:hidden;
+  background:#f7e3ec;
+}
+
+#message{
+  position:absolute;
+  width:100%;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  font-size:22px;
+  font-weight:bold;
+  color:#e91e63;
+  z-index:1;
+}
+
+canvas{
+  position:absolute;
+  top:0;
+  left:0;
+  z-index:2;
+}
+
+#loveGif{
+  display:none;
+  width:140px;
+  border-radius:12px;
+}
+
+#btnArea{
+  display:none;
+  position:relative;
+  width:320px;
+  height:140px;
+  margin:10px auto;
+}
+
+button{
+  width:120px;
+  height:50px;
+  font-size:18px;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.yes{
+  background:#10b74a;
+  color:white;
+  position:absolute;
+  left:20px;
+  bottom:20px;
+  width:120px;
+  height:50px;
+}
+
+.no{
+  background:#e91e63;
+  color:white;
+  position:absolute;
+  left:180px;
+  bottom:20px;
+
+  width:120px;
+  height:50px;
+
+  border-radius:12px;
+  transition: all 0.25s ease;
+}
+
+
+.no:hover{
+  transform:scale(1.05);
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>Hey Dipika, scratch to reveal your surprise!</h2>
+
+<div class="scratch-box">
+  <div id="message">
+    <div id="textMsg">
+      💝<br>Will you be my Valentine?<br>💝
+    </div>
+    <img id="loveGif"
+      src="https://media.giphy.com/media/MDJ9IbxxvDUQM/giphy.gif">
+  </div>
+
+  <canvas id="canvas"></canvas>
+</div>
+
+<div id="btnArea">
+  <button class="yes" onclick="showLove()">Yes!</button>
+  <button class="no" id="noBtn">No</button>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 320;
+canvas.height = 200;
+
+// --- Scratch Cover ---
+let grad = ctx.createLinearGradient(0,0,320,200);
+grad.addColorStop(0,"#ff6fa5");
+grad.addColorStop(1,"#d63384");
+ctx.fillStyle = grad;
+ctx.fillRect(0,0,320,200);
+
+// bubbles
+for(let i=0;i<25;i++){
+  ctx.globalAlpha=0.15;
+  ctx.beginPath();
+  ctx.arc(Math.random()*320,Math.random()*200,
+          Math.random()*30+10,0,Math.PI*2);
+  ctx.fillStyle="#fff";
+  ctx.fill();
+}
+ctx.globalAlpha=1;
+ctx.globalCompositeOperation="destination-out";
+
+let drawing=false;
+let revealed=false;
+
+canvas.addEventListener("mousedown",()=>drawing=true);
+canvas.addEventListener("mouseup",()=>drawing=false);
+
+canvas.addEventListener("mousemove",e=>{
+  if(!drawing || revealed) return;
+  scratch(e);
+});
+
+canvas.addEventListener("touchmove",e=>{
+  if(revealed) return;
+  scratch(e.touches[0]);
+});
+
+function scratch(e){
+  const r=canvas.getBoundingClientRect();
+  const x=e.clientX-r.left;
+  const y=e.clientY-r.top;
+  ctx.beginPath();
+  ctx.arc(x,y,18,0,Math.PI*2);
+  ctx.fill();
+  checkProgress();
+}
+
+// --- AUTO REVEAL AT 50% ---
+function checkProgress(){
+  const img=ctx.getImageData(0,0,320,200);
+  let cleared=0;
+
+  for(let i=3;i<img.data.length;i+=4){
+    if(img.data[i]===0) cleared++;
+  }
+
+  let percent=cleared/(320*200)*100;
+
+  if(percent>50 && !revealed){
+    revealAll();
+  }
+}
+
+function revealAll(){
+  revealed=true;
+
+  // clear scratch
+  ctx.clearRect(0,0,320,200);
+
+  // SHOW buttons now
+  document.getElementById("btnArea").style.display="block";
+}
+
+
+// YES button action
+function showLove(){
+  document.getElementById("textMsg").style.display="none";
+  document.getElementById("loveGif").style.display="block";
+}
+
+// --- RUNAWAY NO BUTTON ---
+const noBtn = document.getElementById("noBtn");
+const area = document.getElementById("btnArea");
+
+let hoverCount = 0;
+
+// starting size
+let btnWidth = 120;
+let btnHeight = 50;
+
+const texts = ["Sure?","Really?","Think Again!"];
+
+noBtn.addEventListener("mouseenter",()=>{
+
+  hoverCount++;
+
+  // shrink every hover
+  btnWidth -= 15;
+  btnHeight -= 8;
+
+  // minimum size limit
+  if(btnWidth < 60) btnWidth = 60;
+  if(btnHeight < 35) btnHeight = 35;
+
+  noBtn.style.width = btnWidth+"px";
+  noBtn.style.height = btnHeight+"px";
+
+  if(hoverCount <= 3){
+    noBtn.innerText = texts[hoverCount-1];
+    noBtn.style.fontSize="16px";
+  }
+  else{
+    noBtn.innerHTML="❤️";
+    noBtn.style.fontSize="22px";
+
+    // make it round when heart shows
+    // noBtn.style.borderRadius="50%";
+  }
+
+  moveBtn();
+});
+
+function moveBtn(){
+  const areaWidth = 320;
+  const areaHeight = 140;
+
+  // Only right-side movement zone
+  const minX = 170; // keep away from Yes
+  const maxX = areaWidth - noBtn.offsetWidth;
+
+  const maxY = areaHeight - noBtn.offsetHeight;
+
+  const x = minX + Math.random()*(maxX-minX);
+  const y = Math.random()*maxY;
+
+  noBtn.style.left = x+"px";
+  noBtn.style.top = y+"px";
+}
+
+</script>
+
+</body>
+</html>
